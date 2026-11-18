@@ -8,7 +8,6 @@ package marquez;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
-import graphql.kickstart.servlet.GraphQLHttpServlet;
 import java.util.ArrayList;
 import java.util.List;
 import lombok.Getter;
@@ -43,8 +42,8 @@ import marquez.db.SearchDao;
 import marquez.db.SourceDao;
 import marquez.db.StatsDao;
 import marquez.db.TagDao;
+import marquez.graphql.GraphqlEndpoint;
 import marquez.graphql.GraphqlSchemaBuilder;
-import marquez.graphql.MarquezGraphqlServletBuilder;
 import marquez.search.SearchConfig;
 import marquez.service.ColumnLineageService;
 import marquez.service.DatasetFieldService;
@@ -110,7 +109,7 @@ public final class MarquezContext {
   @Getter private final ImmutableList<Object> resources;
   @Getter private final JdbiExceptionExceptionMapper jdbiException;
   @Getter private final JsonProcessingExceptionMapper jsonException;
-  @Getter private final GraphQLHttpServlet graphqlServlet;
+  @Getter private final GraphqlEndpoint graphqlEndpoint;
   @Getter private final SearchConfig searchConfig;
 
   private MarquezContext(
@@ -201,8 +200,7 @@ public final class MarquezContext {
             v2BetasearchResource,
             opsResource);
 
-    final MarquezGraphqlServletBuilder servlet = new MarquezGraphqlServletBuilder();
-    this.graphqlServlet = servlet.getServlet(new GraphqlSchemaBuilder(jdbi));
+    this.graphqlEndpoint = new GraphqlEndpoint(new GraphqlSchemaBuilder(jdbi));
   }
 
   public static Builder builder() {

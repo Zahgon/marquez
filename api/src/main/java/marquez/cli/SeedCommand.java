@@ -9,8 +9,6 @@ import static marquez.common.Utils.newObjectMapper;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.google.common.collect.ImmutableList;
-import io.dropwizard.cli.Command;
-import io.dropwizard.setup.Bootstrap;
 import io.openlineage.client.OpenLineage;
 import io.openlineage.client.OpenLineageClient;
 import io.openlineage.client.transports.HttpTransport;
@@ -92,7 +90,7 @@ import net.sourceforge.argparse4j.inf.Subparser;
  * <p><b>Note:</b> The {@code seed} command requires a running instance of Marquez.
  */
 @Slf4j
-public final class SeedCommand extends Command {
+public final class SeedCommand extends MarquezCommand {
   /* Default URL for HTTP backend. */
   private static final String DEFAULT_OL_URL = "http://localhost:8080";
 
@@ -124,7 +122,7 @@ public final class SeedCommand extends Command {
   }
 
   @Override
-  public void run(@NonNull Bootstrap<?> bootstrap, @NonNull Namespace namespace) {
+  public void run(@NonNull Namespace namespace) {
     final String olUrl = namespace.getString(CMD_ARG_OL_URL);
     final String olMetadata = namespace.getString(CMD_ARG_OL_METADATA);
     // Use HTTP transport.

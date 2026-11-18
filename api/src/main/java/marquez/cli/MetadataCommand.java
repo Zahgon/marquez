@@ -14,8 +14,6 @@ import static java.time.ZoneOffset.UTC;
 import static java.time.format.DateTimeFormatter.ISO_ZONED_DATE_TIME;
 
 import com.google.common.collect.ImmutableList;
-import io.dropwizard.cli.Command;
-import io.dropwizard.setup.Bootstrap;
 import io.openlineage.client.OpenLineage;
 import java.io.FileWriter;
 import java.io.IOException;
@@ -64,7 +62,7 @@ import net.sourceforge.argparse4j.inf.Subparser;
  * }</pre>
  */
 @Slf4j
-public final class MetadataCommand extends Command {
+public final class MetadataCommand extends MarquezCommand {
   /* Used for event randomization. */
   private static final Random RANDOM = new Random();
   private static final ZoneId AMERICA_LOS_ANGELES = ZoneId.of("America/Los_Angeles");
@@ -211,7 +209,7 @@ public final class MetadataCommand extends Command {
   }
 
   @Override
-  public void run(@NonNull Bootstrap<?> bootstrap, @NonNull Namespace namespace) {
+  public void run(@NonNull Namespace namespace) {
     final int jobs = namespace.getInt(CMD_ARG_METADATA_JOBS);
     final int runsActive = namespace.getInt(CMD_ARG_METADATA_RUNS_ACTIVE);
     final int runsPerJob = namespace.getInt(CMD_ARG_METADATA_RUNS_PER_JOB);

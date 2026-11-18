@@ -5,13 +5,11 @@
 
 package marquez.cli;
 
-import io.dropwizard.cli.ConfiguredCommand;
-import io.dropwizard.db.DataSourceFactory;
-import io.dropwizard.db.ManagedDataSource;
-import io.dropwizard.setup.Bootstrap;
+import javax.sql.DataSource;
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
 import marquez.MarquezConfig;
+import marquez.config.DatabaseConfig;
 import marquez.db.DbMigration;
 import net.sourceforge.argparse4j.inf.Namespace;
 
@@ -20,22 +18,18 @@ import net.sourceforge.argparse4j.inf.Namespace;
  * decoupled from application deployment.
  */
 @Slf4j
-public class DbMigrateCommand extends ConfiguredCommand<MarquezConfig> {
+public class DbMigrateCommand extends ConfiguredCommand {
 
   public DbMigrateCommand() {
     super("db-migrate", "A command to manually run database migrations.");
   }
 
   @Override
-  protected void run(
-      @NonNull Bootstrap<MarquezConfig> bootstrap,
-      @NonNull Namespace namespace,
-      @NonNull MarquezConfig configuration)
+  protected void run(@NonNull Namespace namespace, @NonNull MarquezConfig configuration)
       throws Exception {
 
-    final DataSourceFactory sourceFactory = configuration.getDataSourceFactory();
-    final ManagedDataSource source =
-        sourceFactory.build(bootstrap.getMetricRegistry(), "MarquezApp-source");
+    final DatabaseConfig database = configuration.getDatabase();
+    final DataSource source = database.build("MarquezApp-source");
 
     DbMigration.migrateDbOrError(configuration.getFlywayFactory(), source, true);
   }

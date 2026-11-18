@@ -9,10 +9,7 @@ import static marquez.db.DbRetention.DEFAULT_DRY_RUN;
 import static marquez.db.DbRetention.DEFAULT_NUMBER_OF_ROWS_PER_BATCH;
 import static marquez.db.DbRetention.DEFAULT_RETENTION_DAYS;
 
-import io.dropwizard.cli.ConfiguredCommand;
-import io.dropwizard.db.DataSourceFactory;
-import io.dropwizard.db.ManagedDataSource;
-import io.dropwizard.setup.Bootstrap;
+import javax.sql.DataSource;
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
 import marquez.MarquezConfig;
@@ -36,7 +33,7 @@ import org.jdbi.v3.postgres.PostgresPlugin;
  * }</pre>
  */
 @Slf4j
-public class DbRetentionCommand extends ConfiguredCommand<MarquezConfig> {
+public class DbRetentionCommand extends ConfiguredCommand {
   private static final String DB_SOURCE_NAME = "ad-hoc-db-retention-source";
 
   /* Args for 'db-retention' command. */
@@ -82,19 +79,13 @@ public class DbRetentionCommand extends ConfiguredCommand<MarquezConfig> {
   }
 
   @Override
-  protected void run(
-      @NonNull Bootstrap<MarquezConfig> bootstrap,
-      @NonNull Namespace namespace,
-      @NonNull MarquezConfig config)
-      throws Exception {
+  protected void run(@NonNull Namespace namespace, @NonNull MarquezConfig config) throws Exception {
     final int numberOfRowsPerBatch = namespace.getInt(CMD_ARG_NUMBER_OF_ROWS_PER_BATCH);
     final int retentionDays = namespace.getInt(CMD_ARG_RETENTION_DAYS);
     final boolean dryRun = namespace.getBoolean(CMD_ARG_DRY_RUN);
 
     // Configure connection.
-    final DataSourceFactory sourceFactory = config.getDataSourceFactory();
-    final ManagedDataSource source =
-        sourceFactory.build(bootstrap.getMetricRegistry(), DB_SOURCE_NAME);
+    final DataSource source = config.getDatabase().build(DB_SOURCE_NAME);
 
     // Open connection.
     final Jdbi jdbi = Jdbi.create(source);

@@ -8,10 +8,10 @@ package marquez.api.exceptions;
 import static javax.ws.rs.core.MediaType.APPLICATION_JSON_TYPE;
 import static javax.ws.rs.core.Response.Status.INTERNAL_SERVER_ERROR;
 
-import io.dropwizard.jersey.errors.ErrorMessage;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.ext.ExceptionMapper;
 import lombok.extern.slf4j.Slf4j;
+import marquez.http.ErrorMessage;
 import org.jdbi.v3.core.JdbiException;
 
 @Slf4j

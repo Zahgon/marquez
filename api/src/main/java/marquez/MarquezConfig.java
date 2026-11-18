@@ -5,14 +5,16 @@
 
 package marquez;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.collect.ImmutableSet;
-import io.dropwizard.Configuration;
-import io.dropwizard.db.DataSourceFactory;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 import marquez.api.filter.exclusions.ExclusionsConfig;
+import marquez.config.DatabaseConfig;
+import marquez.config.LoggingConfig;
+import marquez.config.ServerConfig;
 import marquez.db.FlywayFactory;
 import marquez.graphql.GraphqlConfig;
 import marquez.jobs.DbRetentionConfig;
@@ -22,7 +24,8 @@ import marquez.tracing.SentryConfig;
 
 /** Configuration for {@code Marquez}. */
 @NoArgsConstructor
-public class MarquezConfig extends Configuration {
+@JsonIgnoreProperties(ignoreUnknown = true)
+public class MarquezConfig {
   private static final boolean DEFAULT_MIGRATE_ON_STARTUP = true;
   private static final ImmutableSet<Tag> DEFAULT_TAGS = ImmutableSet.of();
 
@@ -30,8 +33,16 @@ public class MarquezConfig extends Configuration {
   @Getter private ImmutableSet<Tag> tags = DEFAULT_TAGS;
 
   @Getter
+  @JsonProperty("server")
+  private final ServerConfig server = new ServerConfig();
+
+  @Getter
+  @JsonProperty("logging")
+  private final LoggingConfig logging = new LoggingConfig();
+
+  @Getter
   @JsonProperty("db")
-  private final DataSourceFactory dataSourceFactory = new DataSourceFactory();
+  private final DatabaseConfig database = new DatabaseConfig();
 
   @Getter
   @JsonProperty("flyway")

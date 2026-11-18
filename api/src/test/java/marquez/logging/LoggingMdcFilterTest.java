@@ -6,56 +6,77 @@
 package marquez.logging;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
 
-import java.io.IOException;
-import java.lang.reflect.Field;
-import java.util.Collections;
 import java.util.List;
-import javax.ws.rs.container.ContainerRequestContext;
-import org.glassfish.jersey.server.ExtendedUriInfo;
-import org.glassfish.jersey.uri.UriTemplate;
+import java.util.Map;
+import marquez.http.RequestContext;
+import marquez.http.RequestTarget;
+import marquez.http.Route;
+import marquez.http.RouteTable;
 import org.junit.Before;
 import org.junit.Test;
-import org.mockito.Mock;
-import org.mockito.Mockito;
-import org.mockito.MockitoAnnotations;
 import org.slf4j.MDC;
 
 public class LoggingMdcFilterTest {
-
-  @Mock private ContainerRequestContext requestContext;
-
-  @Mock private ExtendedUriInfo uriInfo;
 
   private LoggingMdcFilter filter;
 
   @Before
   public void setUp() {
-    MockitoAnnotations.openMocks(this);
     filter = new LoggingMdcFilter();
-    Mockito.when(requestContext.getUriInfo()).thenReturn(uriInfo);
   }
 
   @Test
-  public void testPathWithPlaceholders()
-      throws IOException,
-          NoSuchFieldException,
-          SecurityException,
-          IllegalArgumentException,
-          IllegalAccessException {
-    String expectedPath = "/api/users/{userId}";
-    List<UriTemplate> templates = Collections.singletonList(new UriTemplate(expectedPath));
+  public void testPathWithPlaceholders() {
+    final RequestContext request =
+        new RequestContext(
+            "GET", RequestTarget.of("/api/v1/namespaces/a"), Map.of(), "http://localhost:8080/");
+    final RouteTable table = RouteTable.of(List.of(new NamespaceLike()));
+    final List<Route> matched = table.matching(request.target());
+    request.route(matched.get(0));
 
-    Field uriInfoField = LoggingMdcFilter.class.getDeclaredField("uriInfo");
-    uriInfoField.setAccessible(true);
-    uriInfoField.set(filter, uriInfo);
+    filter.taken(request);
+    filter.before(request);
 
-    Mockito.when(requestContext.getUriInfo()).thenReturn(uriInfo);
-    Mockito.when(uriInfo.getMatchedTemplates()).thenReturn(templates);
+    assertEquals("/api/v1/namespaces/{namespace}", MDC.get("pathWithParams"));
+    assertEquals("GET", MDC.get("method"));
+    assertEquals("/api/v1/namespaces/a", MDC.get("path"));
 
-    filter.filter(requestContext);
+    filter.complete(null);
+    assertNull(MDC.get("pathWithParams"));
+    assertNull(MDC.get("method"));
+  }
 
-    assertEquals(expectedPath, MDC.get("pathWithParams"));
-    MDC.clear(); // Clean up MDC
+  /** A request nothing matched still gets a context of its own, and loses it when it is over. */
+  @Test
+  public void testContextForARequestThatWasNeverMatched() {
+    final RequestContext request =
+        new RequestContext(
+            "DELETE", RequestTarget.of("/api/v1/nothing/here"), Map.of(), "http://localhost:8080/");
+
+    filter.taken(request);
+
+    assertNotNull(MDC.get("requestID"));
+    assertEquals("DELETE", MDC.get("method"));
+    assertEquals("/api/v1/nothing/here", MDC.get("path"));
+    assertEquals("", MDC.get("pathWithParams"));
+
+    filter.complete(null);
+    assertNull(MDC.get("requestID"));
+    assertNull(MDC.get("method"));
+    assertNull(MDC.get("path"));
+    assertNull(MDC.get("pathWithParams"));
+  }
+
+  /** A resource with one path, which is all this test needs to match against. */
+  @javax.ws.rs.Path("/api/v1")
+  public static class NamespaceLike {
+    @javax.ws.rs.GET
+    @javax.ws.rs.Path("/namespaces/{namespace}")
+    public String get(@javax.ws.rs.PathParam("namespace") String namespace) {
+      return namespace;
+    }
   }
 }

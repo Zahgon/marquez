@@ -9,10 +9,10 @@ import static javax.ws.rs.core.MediaType.APPLICATION_JSON_TYPE;
 import static javax.ws.rs.core.Response.Status.BAD_REQUEST;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
-import io.dropwizard.jersey.errors.ErrorMessage;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.ext.ExceptionMapper;
 import lombok.extern.slf4j.Slf4j;
+import marquez.http.ErrorMessage;
 
 @Slf4j
 public class JsonProcessingExceptionMapper implements ExceptionMapper<JsonProcessingException> {

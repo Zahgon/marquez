@@ -6,11 +6,11 @@
 package marquez.jobs;
 
 import com.google.common.util.concurrent.AbstractScheduledService;
-import io.dropwizard.lifecycle.Managed;
 import java.time.Duration;
 import java.time.LocalTime;
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
+import marquez.lifecycle.Managed;
 import org.jdbi.v3.core.Jdbi;
 
 /** A job that refreshes materialized views on a fixed schedule in Marquez. */

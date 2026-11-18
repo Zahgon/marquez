@@ -6,12 +6,12 @@
 package marquez.jobs;
 
 import com.google.common.util.concurrent.AbstractScheduledService;
-import io.dropwizard.lifecycle.Managed;
 import java.time.Duration;
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
 import marquez.db.DbRetention;
 import marquez.db.exceptions.DbRetentionException;
+import marquez.lifecycle.Managed;
 import org.jdbi.v3.core.Jdbi;
 
 /**

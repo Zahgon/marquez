@@ -5,39 +5,39 @@
 
 package marquez.logging;
 
-import java.io.IOException;
-import java.util.List;
 import java.util.UUID;
-import javax.ws.rs.container.CompletionCallback;
-import javax.ws.rs.container.ContainerRequestContext;
-import javax.ws.rs.container.ContainerRequestFilter;
-import javax.ws.rs.container.ContainerResponseContext;
-import javax.ws.rs.container.ContainerResponseFilter;
-import javax.ws.rs.core.Context;
-import javax.ws.rs.core.Response;
 import lombok.extern.slf4j.Slf4j;
-import org.glassfish.jersey.server.ExtendedUriInfo;
-import org.glassfish.jersey.uri.UriTemplate;
+import marquez.http.Answer;
+import marquez.http.RequestContext;
+import marquez.http.RequestFilters;
 import org.slf4j.MDC;
 
 /**
  * Puts request ID, method, and path to the MDC context so that this information is available from
  * logs throughout the request context. Request ID is randomly generated UUID, which can be used to
  * group by to see the logs for a particular request.
+ *
+ * <p>The context is put up for every request the API layer takes in, before anything is known about
+ * what will answer it, so that a request answered without reaching a resource method is logged
+ * under a context of its own too; the one thing that cannot be known that early, the template the
+ * request was matched to, is added once it has been. It is taken down when the request is over and
+ * its answer written - in {@link #complete(Throwable)}, which the layer calls however the request
+ * ended, so nothing is left behind on the thread when a resource method throws.
  */
 @Slf4j
 public class LoggingMdcFilter
-    implements ContainerRequestFilter, ContainerResponseFilter, CompletionCallback {
+    implements RequestFilters.WhenTakenIn,
+        RequestFilters.BeforeResource,
+        RequestFilters.AfterResource,
+        RequestFilters.WhenComplete {
 
   private static final String REQUEST_ID = "requestID";
   private static final String METHOD = "method";
   private static final String PATH = "path";
   private static final String PATH_WITH_PARAMETERS = "pathWithParams";
 
-  @Context private ExtendedUriInfo uriInfo;
-
   @Override
-  public void onComplete(Throwable throwable) {
+  public void complete(Throwable throwable) {
     MDC.remove(REQUEST_ID);
     MDC.remove(METHOD);
     MDC.remove(PATH);
@@ -45,29 +45,28 @@ public class LoggingMdcFilter
   }
 
   @Override
-  public void filter(ContainerRequestContext requestContext) throws IOException {
+  public void taken(RequestContext request) {
     MDC.put(REQUEST_ID, UUID.randomUUID().toString());
-    MDC.put(METHOD, requestContext.getMethod());
-    MDC.put(PATH, requestContext.getUriInfo().getPath());
-    StringBuilder pathWithPlaceholders = new StringBuilder();
-
-    List<UriTemplate> matchedTemplates = uriInfo.getMatchedTemplates();
-    for (int i = matchedTemplates.size() - 1; i >= 0; i--) {
-      pathWithPlaceholders.append(matchedTemplates.get(i).getTemplate());
-    }
-    MDC.put(PATH_WITH_PARAMETERS, pathWithPlaceholders.toString());
+    MDC.put(METHOD, request.method());
+    MDC.put(PATH, request.target().rawPath());
+    // Nothing has been matched yet; a request that is answered before it ever is keeps this empty.
+    MDC.put(PATH_WITH_PARAMETERS, "");
   }
 
   @Override
-  public void filter(
-      ContainerRequestContext requestContext, ContainerResponseContext responseContext)
-      throws IOException {
-    if (responseContext.getStatus() >= Response.Status.INTERNAL_SERVER_ERROR.getStatusCode()) {
-      log.error("status: {}", responseContext.getStatus());
-    } else if (responseContext.getStatus() >= Response.Status.BAD_REQUEST.getStatusCode()) {
-      log.warn("status: {}", responseContext.getStatus());
+  public void before(RequestContext request) {
+    MDC.put(
+        PATH_WITH_PARAMETERS, request.route() == null ? "" : request.route().template().declared());
+  }
+
+  @Override
+  public void after(RequestContext request, Answer answer) {
+    if (answer.status() >= 500) {
+      log.error("status: {}", answer.status());
+    } else if (answer.status() >= 400) {
+      log.warn("status: {}", answer.status());
     } else {
-      log.info("status: {}", responseContext.getStatus());
+      log.info("status: {}", answer.status());
     }
   }
 }
